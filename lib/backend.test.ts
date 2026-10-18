@@ -29,7 +29,7 @@ function fixture() {
       communityHealth: 80, rulesCount: null, workflowCount: 0,
       policies: POLICY_DEFINITIONS.map((policy) => ({
         key: policy.key, label: policy.label, weight: policy.weight, state: "ABSENT",
-        path: null, blobSha: null, sourceRepo: null,
+        path: null, blobSha: null, sourceRepo: null as string | null,
       })),
       consistency: 100, evidenceCoverage: 100, agentSignals: [],
       policyHistory: { sourceHeadSha: "a".repeat(40), status: "MEASURED",
