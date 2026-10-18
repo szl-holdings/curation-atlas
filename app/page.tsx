@@ -54,12 +54,14 @@ import {
   agentSignalCount,
   createReceipt,
   deepInspectionBlocked,
+  normalizeOrganizationHandle,
   policyPresence,
   scanOrganization,
 } from "@/lib/audit";
 import { doctrineReadback } from "@/lib/doctrine";
 import { comparisonRows, frontierHypothesis, methods, sources } from "@/lib/research";
 import { compareAudits, verifyImportedReceipt, type VerifiedBaseline } from "@/lib/comparison";
+import { configuredAtlasApiBase, scanBackendOrganization } from "@/lib/backend";
 
 type ScanProgress = { message: string; completed: number; total: number };
 
@@ -811,6 +813,7 @@ export default function Home() {
   const [rateRemaining, setRateRemaining] = useState<number | null>(null);
   const [rateLimit, setRateLimit] = useState<number | null>(null);
   const [baseline, setBaseline] = useState<VerifiedBaseline | null>(null);
+  const [auditSource, setAuditSource] = useState<"BUNDLED_SAMPLE" | "BROWSER_DIRECT" | "PYTHON_API">("BUNDLED_SAMPLE");
   const scanInFlight = useRef(false);
 
   const runAudit = useCallback(async (requestedOrg = org, requestedSampleSize = sampleSize) => {
@@ -825,16 +828,26 @@ export default function Home() {
     setOrg(requestedOrg);
     setSampleSize(requestedSampleSize);
     try {
-      const result = await scanOrganization(
-        requestedOrg,
-        requestedSampleSize,
-        (message, completed, total) => setProgress({ message, completed, total }),
-        (rate) => {
-          setRateRemaining(rate.remaining);
-          setRateLimit(rate.limit);
-        },
-      );
+      const apiBase = configuredAtlasApiBase();
+      const useBackend = Boolean(apiBase && normalizeOrganizationHandle(requestedOrg).toLowerCase() === "szl-holdings");
+      if (useBackend) setProgress({ message: "Requesting bounded Python API observation", completed: 0, total: 1 });
+      const result = useBackend
+        ? await scanBackendOrganization(apiBase!, requestedSampleSize)
+        : await scanOrganization(
+            requestedOrg,
+            requestedSampleSize,
+            (message, completed, total) => setProgress({ message, completed, total }),
+            (rate) => {
+              setRateRemaining(rate.remaining);
+              setRateLimit(rate.limit);
+            },
+          );
       setAudit(result);
+      setAuditSource(useBackend ? "PYTHON_API" : "BROWSER_DIRECT");
+      if (useBackend) {
+        setRateRemaining(result.rate.remaining);
+        setRateLimit(result.rate.limit);
+      }
       setOrg(result.org.login);
       const failedCount = result.repositories.filter(deepInspectionBlocked).length;
       setProgress({
@@ -870,6 +883,7 @@ export default function Home() {
           execute() {
             return {
               mode: audit.mode,
+              source: auditSource,
               organization: audit.org.login,
               observedAt: audit.observedAt,
               publicRepositoryCount: audit.inventory.publicRepos,
@@ -928,7 +942,7 @@ export default function Home() {
       // WebMCP is optional; the visible interface remains the source of truth.
     });
     return () => lifecycle.abort();
-  }, [audit, runAudit, sampleSize]);
+  }, [audit, auditSource, runAudit, sampleSize]);
 
   const exportReceipt = async () => {
     const receipt = await createReceipt(audit);
@@ -1004,6 +1018,12 @@ export default function Home() {
                 <Progress aria-label="Live audit progress" value={progressValue} className="h-1 bg-white/[0.06] [&_[data-slot=progress-indicator]]:bg-emerald-300" />
               </div>
             )}
+            <p className="px-2 pb-1 pt-2 text-[11px] leading-5 text-slate-400" aria-live="polite">
+              Displayed evidence source: {auditSource === "PYTHON_API" ? "Python API" : auditSource === "BROWSER_DIRECT" ? "browser-direct GitHub" : "bundled SAMPLE"}.
+              {process.env.NEXT_PUBLIC_ATLAS_API_BASE
+                ? " SZL scans use the configured Python API; other public organizations use the browser scanner."
+                : " Python API is not configured for this Site build; scans use the browser directly."}
+            </p>
           </div>
         </section>
 

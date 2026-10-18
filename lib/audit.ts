@@ -749,14 +749,19 @@ export function matchPolicyChanges(files: Array<{ filename: string; previous_fil
   return { changedPaths: [...paths].sort(), policyKeys: [...keys].sort() };
 }
 
+export function normalizeOrganizationHandle(rawOrg: string): string {
+  const org = rawOrg.trim().replace(/^https?:\/\/github\.com\//i, "").replace(/^@/, "").replace(/\/$/, "");
+  if (!/^[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?$/i.test(org)) throw new GitHubAuditError("Enter a valid GitHub organization handle.");
+  return org;
+}
+
 export async function scanOrganization(
   rawOrg: string,
   sampleSize: number,
   onProgress: (message: string, completed: number, total: number) => void,
   onRate: (rate: RateState) => void,
 ): Promise<AuditResult> {
-  const org = rawOrg.trim().replace(/^https?:\/\/github\.com\//i, "").replace(/^@/, "").replace(/\/$/, "");
-  if (!/^[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?$/i.test(org)) throw new GitHubAuditError("Enter a valid GitHub organization handle.");
+  const org = normalizeOrganizationHandle(rawOrg);
 
   const startedAt = new Date().toISOString();
   if (![4, 6, 8].includes(sampleSize)) throw new GitHubAuditError("Choose a deep sample of 4, 6, or 8 repositories.");

@@ -10,10 +10,16 @@ import {
   modeForDeepFailures,
   matchPolicyChanges,
   classifyAgentSignal,
+  normalizeOrganizationHandle,
   scanOrganization,
   scoreRepositories,
   type RepoAudit,
 } from "./audit.ts";
+
+test("normalizes GitHub organization aliases before backend routing", () => {
+  assert.equal(normalizeOrganizationHandle("@szl-holdings"), "szl-holdings");
+  assert.equal(normalizeOrganizationHandle("https://github.com/szl-holdings/"), "szl-holdings");
+});
 
 function repoWithUniqueWorkflow(name: string, workflowFingerprint: string): RepoAudit {
   return {

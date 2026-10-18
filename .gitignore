@@ -45,3 +45,5 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+__pycache__/
+*.py[cod]
