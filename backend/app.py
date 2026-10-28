@@ -13,7 +13,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 import httpx
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -59,9 +59,10 @@ app = FastAPI(
     description="Bounded public GitHub observations; not a policy effector or release attestation.",
     lifespan=lifespan,
 )
+ALLOWED_ORIGINS = allowed_origins()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins(),
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
     allow_methods=["GET"],
     allow_headers=["Accept", "If-None-Match"],
@@ -85,6 +86,7 @@ async def healthz() -> dict[str, Any]:
 def audit_response(result: dict[str, Any], etag: str, cached: bool) -> JSONResponse:
     headers = {
         "Cache-Control": "public, max-age=60",
+        "Vary": "Origin",
         "ETag": etag,
         "X-Atlas-Observation": "cached" if cached else "fresh",
         "X-Content-Type-Options": "nosniff",
@@ -96,7 +98,15 @@ def audit_response(result: dict[str, Any], etag: str, cached: bool) -> JSONRespo
 
 
 @app.get("/v1/orgs/{org}/audit")
-async def audit(org: str, sample_size: int = Query(default=4)) -> JSONResponse:
+async def audit(request: Request, org: str, sample_size: int = Query(default=4)) -> JSONResponse:
+    origin = request.headers.get("origin")
+    if origin is not None and origin not in ALLOWED_ORIGINS:
+        return JSONResponse(
+            status_code=403,
+            content={"evidence": "BLOCKED", "code": "ORIGIN_NOT_ALLOWED",
+                     "message": "This browser origin is not permitted."},
+            headers={"Cache-Control": "no-store", "Vary": "Origin"},
+        )
     if org != ORG:
         return JSONResponse(
             status_code=404,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -149,9 +150,36 @@ class TransportTests(unittest.TestCase):
                 client.get(f"/v1/orgs/{ORG}/audit?sample_size=2").status_code, 422
             )
 
-    def test_cors_requires_exact_origin(self):
+    def test_allowed_origins_parser_requires_exact_origin(self):
         with patch.dict("os.environ", {"ATLAS_ALLOWED_ORIGINS": "https://atlas.example"}, clear=False):
             self.assertEqual(allowed_origins(), ["https://atlas.example"])
         with patch.dict("os.environ", {"ATLAS_ALLOWED_ORIGINS": "*"}, clear=False):
             with self.assertRaises(RuntimeError):
                 allowed_origins()
+
+    def test_audit_origin_guard_before_cached_public_result(self):
+        _cache[4] = (time.monotonic(), {"publicOnly": True}, '"cached"')
+        with patch("app.ALLOWED_ORIGINS", ["https://atlas.example"]), TestClient(app) as client:
+            denied = client.get(
+                f"/v1/orgs/{ORG}/audit", headers={"Origin": "https://example.invalid"}
+            )
+            self.assertEqual(denied.status_code, 403)
+            self.assertEqual(denied.json()["code"], "ORIGIN_NOT_ALLOWED")
+            self.assertEqual(denied.headers["cache-control"], "no-store")
+            self.assertEqual(denied.headers["vary"], "Origin")
+
+            allowed = client.get(
+                f"/v1/orgs/{ORG}/audit", headers={"Origin": "https://atlas.example"}
+            )
+            self.assertEqual(allowed.status_code, 200)
+            self.assertEqual(allowed.json(), {"publicOnly": True})
+            self.assertEqual(allowed.headers["vary"], "Origin")
+
+            without_origin = client.get(f"/v1/orgs/{ORG}/audit")
+            self.assertEqual(without_origin.status_code, 200)
+
+        with patch("app.ALLOWED_ORIGINS", []), TestClient(app) as client:
+            self.assertEqual(
+                client.get(f"/v1/orgs/{ORG}/audit", headers={"Origin": "null"}).status_code,
+                403,
+            )

@@ -24,9 +24,14 @@ without changing their original `observedAt`. HTTP 429/503 responses are not aud
 results. Partial deep evidence is retained with `mode: "BLOCKED"`.
 
 Set `ATLAS_ALLOWED_ORIGINS` to a comma-separated list of exact HTTPS Site origins
-before browser integration. No wildcard CORS origin is accepted. Optionally set a
-least-privilege `ATLAS_GITHUB_TOKEN` as a Space secret for GitHub rate capacity;
-never place it in frontend source or a browser environment variable.
+before browser integration. No wildcard origin is accepted. The app returns 403
+for audit GET requests with an unlisted `Origin`; requests without `Origin` remain
+available to CLI and server callers. This is a browser abuse guard, not
+authentication: callers can omit or forge `Origin`, and the audit contains public
+GitHub data. The Hugging Face Space edge has been observed reflecting unrelated
+origins on GET and preflight, so its CORS headers do not prove this app guard ran.
+Optionally set a least-privilege `ATLAS_GITHUB_TOKEN` as a Space secret for GitHub
+rate capacity; never place it in frontend source or a browser environment variable.
 `ATLAS_SOURCE_REVISION` may be set to a full 40-character source commit only after
 the deployed bytes are bound to that revision by the publisher. Otherwise the
 health response reports the binding as `UNKNOWN`.
