@@ -28,7 +28,7 @@ export const methods: Array<{
     evidence:
       "REPORTED (v2): the best observed Adapt-Papers 10K trajectory scored 34.9, with a condition mean of 34.0±0.8, above the evaluated ARDS-100K baseline at 34.1; new-policy-family moves rose from 27% to 67%.",
     limitation:
-      "Every accepted policy still incurs fine-tuning and multi-benchmark evaluation. Self-Research underperformed open prompting, so more structure is not monotonically better. The current official main branch does not expose an evident replayable package for the full v2 scaffolds.",
+      "DECLARED replay surface (official repository at 24eea15): the runnable uv/Docker harness exposes eight fixed tasks, contamination auditing, and plain, instruction, and skill-grounded protocols with paper-derived skill cards. REPORTED results were not independently replayed here; the documented setup requires GPU hardware, model and data downloads, and at least 1 TB of free disk. Self-Research underperformed open prompting, so more structure is not monotonically better.",
   },
   {
     key: "gocam",
@@ -92,7 +92,7 @@ export const sources = [
   { label: "CurateEvo full text", url: "https://arxiv.org/html/2607.06140v1", kind: "paper" },
   { label: "Curation-Bench paper", url: "https://arxiv.org/abs/2606.04261v2", kind: "paper" },
   { label: "Curation-Bench project", url: "https://feiyang-k.github.io/curation-bench/", kind: "official" },
-  { label: "Curation-Bench repository", url: "https://github.com/feiyang-k/curation-bench", kind: "code" },
+  { label: "Curation-Bench runnable repository (observed commit)", url: "https://github.com/feiyang-k/curation-bench/tree/24eea1526492c00cee421f5db0793789e00aabb2", kind: "code" },
   { label: "Beaver scientific-curation harness", url: "https://arxiv.org/abs/2606.21005v2", kind: "paper" },
   { label: "GO agent workshop paper", url: "https://arxiv.org/abs/2608.27675v1", kind: "paper" },
   { label: "GO-CAM overview", url: "https://geneontology.org/docs/gocam-overview/", kind: "official" },
