@@ -525,7 +525,7 @@ function ResearchBrief() {
         <article className="panel p-6 sm:p-8">
           <div className="flex items-center gap-2 text-emerald-300/80">
             <Fingerprint className="h-4 w-4" />
-            <p className="eyebrow !text-emerald-300/80">Research synthesis · 2026-10-03</p>
+            <p className="eyebrow !text-emerald-300/80">Research synthesis · 2026-10-17</p>
           </div>
           <h2 className="mt-5 text-balance text-4xl font-semibold leading-[1.02] tracking-[-0.055em] text-white">Three layers. Three outputs. No honest single winner.</h2>
           <p className="mt-6 leading-7 text-slate-400">
