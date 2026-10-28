@@ -64,6 +64,8 @@
   "overrides": {
     "miniflare": {
       "sharp": "0.35.5"
-    }
+    },
+    "undici": "7.30.1",
+    "ws": "8.21.0"
   }
 }
