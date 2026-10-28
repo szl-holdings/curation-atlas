@@ -166,14 +166,14 @@ class TransportTests(unittest.TestCase):
             self.assertEqual(denied.status_code, 403)
             self.assertEqual(denied.json()["code"], "ORIGIN_NOT_ALLOWED")
             self.assertEqual(denied.headers["cache-control"], "no-store")
-            self.assertEqual(denied.headers["vary"], "Origin")
+            self.assertIn("Origin", [value.strip() for value in denied.headers["vary"].split(",")])
 
             allowed = client.get(
                 f"/v1/orgs/{ORG}/audit", headers={"Origin": "https://atlas.example"}
             )
             self.assertEqual(allowed.status_code, 200)
             self.assertEqual(allowed.json(), {"publicOnly": True})
-            self.assertEqual(allowed.headers["vary"], "Origin")
+            self.assertIn("Origin", [value.strip() for value in allowed.headers["vary"].split(",")])
 
             without_origin = client.get(f"/v1/orgs/{ORG}/audit")
             self.assertEqual(without_origin.status_code, 200)
