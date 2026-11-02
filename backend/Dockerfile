@@ -4,8 +4,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.lock .
+RUN pip install --disable-pip-version-check --no-cache-dir --require-hashes -r requirements.lock
 COPY app.py audit.py ./
 
 USER 1000

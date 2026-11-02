@@ -39,9 +39,14 @@ health response reports the binding as `UNKNOWN`.
 Local verification:
 
 ```text
+python -m pip install --require-hashes -r requirements.lock
 python -m unittest discover -s tests -v
 uvicorn app:app --host 127.0.0.1 --port 7860
 ```
+
+`requirements.txt` declares the direct API packages. `requirements.lock` is the
+universal Python 3.12 transitive closure generated with hashes and the recorded
+cutoff in its header. CI and the image build consume only the lock.
 
 The Space's runtime should be probed independently after its exact source revision
 and build status are read back. A running Space or HTTP 200 alone is not a release
