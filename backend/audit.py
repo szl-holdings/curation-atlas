@@ -76,10 +76,16 @@ class GitHubReader:
                 return None
 
         reset = integer("x-ratelimit-reset")
-        reset_at = (
-            datetime.fromtimestamp(reset, timezone.utc).isoformat().replace("+00:00", "Z")
-            if reset is not None else None
-        )
+        try:
+            reset_at = (
+                datetime.fromtimestamp(reset, timezone.utc).isoformat().replace("+00:00", "Z")
+                if reset is not None else None
+            )
+        except (OverflowError, OSError, ValueError):
+            # Optional rate metadata must not hide a source result or its HTTP
+            # failure. Keep the existing observation when the timestamp cannot
+            # be represented on this platform.
+            reset_at = None
         remaining = integer("x-ratelimit-remaining")
         previous = self.rate
         same_window = not previous["resetAt"] or not reset_at or previous["resetAt"] == reset_at

@@ -83,6 +83,51 @@ async def run_scan(**kwargs) -> dict:
         return await scan_organization(GitHubReader(client), 4)
 
 
+class RateHeaderTests(unittest.IsolatedAsyncioTestCase):
+    async def test_out_of_range_reset_does_not_mask_rate_limit(self):
+        for reset in ("999999999999999999999999", "-999999999999999999999999", "253402300800"):
+            with self.subTest(reset=reset):
+                transport = httpx.MockTransport(lambda request: httpx.Response(
+                    429, json={"message": "rate limited"}, headers={
+                        "x-ratelimit-reset": reset, "x-ratelimit-limit": "5000",
+                        "x-ratelimit-remaining": "0", "retry-after": "120",
+                    },
+                ))
+                async with httpx.AsyncClient(transport=transport) as client:
+                    reader = GitHubReader(client)
+                    with self.assertRaises(AuditError) as caught:
+                        await reader.get("/orgs/szl-holdings")
+                    self.assertEqual(caught.exception.status, 429)
+                    self.assertEqual(caught.exception.retry_after, "120")
+                    self.assertIsNone(reader.rate["resetAt"])
+                    self.assertEqual(reader.rate["remaining"], 0)
+                    self.assertEqual(reader.rate["limit"], 5000)
+
+    async def test_out_of_range_reset_preserves_successful_source_response(self):
+        transport = httpx.MockTransport(lambda request: httpx.Response(
+            200, json={"login": ORG}, headers={"x-ratelimit-reset": "253402300800"},
+        ))
+        async with httpx.AsyncClient(transport=transport) as client:
+            reader = GitHubReader(client)
+            self.assertEqual(await reader.get("/orgs/szl-holdings"), {"login": ORG})
+            self.assertIsNone(reader.rate["resetAt"])
+
+    def test_unavailable_reset_preserves_previous_window_and_lower_capacity(self):
+        reader = GitHubReader(None)
+        reader._capture_rate(httpx.Headers({
+            "x-ratelimit-reset": "1792289000", "x-ratelimit-remaining": "50",
+            "x-ratelimit-limit": "5000",
+        }))
+        previous_reset = reader.rate["resetAt"]
+        self.assertEqual(previous_reset, "2026-10-18T02:03:20Z")
+        reader._capture_rate(httpx.Headers({
+            "x-ratelimit-reset": "253402300800", "x-ratelimit-remaining": "40",
+        }))
+        self.assertEqual(reader.rate["resetAt"], previous_reset)
+        self.assertEqual(reader.rate["remaining"], 40)
+        self.assertEqual(reader.rate["limit"], 5000)
+
+
 class AuditContractTests(unittest.IsolatedAsyncioTestCase):
     async def test_complete_public_scan_matches_frontend_shape(self):
         result = await run_scan()
