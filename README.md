@@ -49,10 +49,15 @@ npm run dev
 The backend requires Python 3.12. From `backend/`:
 
 ```text
-python -m pip install -r requirements.txt
+python -m pip install --require-hashes -r requirements.lock
 python -m unittest discover -s tests -v
 python -m uvicorn app:app --host 127.0.0.1 --port 7860
 ```
+
+`backend/requirements.txt` is the three-package direct input. The universal
+`backend/requirements.lock` records the complete Python 3.12 closure and every
+published file hash, with a 2026-11-02 UTC resolver cutoff. CI and the container
+install only that lock with pip's `--require-hashes` mode.
 
 For a cross-origin local frontend preview, set
 `ATLAS_ALLOWED_ORIGINS=http://localhost:5173` in the backend environment and
@@ -64,8 +69,7 @@ publisher binds the deployed bytes to that revision. `/healthz` reports process
 liveness, not upstream readiness or release attestation.
 
 The CI workflow repeats the locked npm install, frontend tests/typecheck/build,
-and direct-version-pinned Python dependency install/unit tests. Transitive Python
-dependencies are not yet hash-locked. CI success does not prove a
+and hash-locked Python closure install/unit tests. CI success does not prove a
 Space or Site is running.
 
 ## Governed release chain
