@@ -120,7 +120,7 @@ test("history failure preserves captured source evidence and blocks the audit", 
     }
     if (url.includes("/commits/")) return new Response(JSON.stringify({ message: "rate limit exceeded" }), { status: 403 });
     if (url.includes("/branches/main")) payload = { protected: false, commit: { sha: "a".repeat(40), commit: { tree: { sha: "b".repeat(40) } } } };
-    else if (url.includes("/git/trees/")) payload = { truncated: false, tree: [{ path: "SECURITY.md", type: "blob", sha: "c".repeat(40) }] };
+    else if (url.includes("/git/trees/")) payload = { sha: "b".repeat(40), truncated: false, tree: [{ path: "SECURITY.md", type: "blob", sha: "c".repeat(40) }] };
     else if (url.includes("/community/profile")) payload = { health_percentage: 100 };
     else if (url.includes("/rules/")) payload = [];
     else if (url.includes("/repos?")) payload = [{ name: "repo", full_name: "example/repo", default_branch: "main", archived: false, disabled: false, fork: false, description: null, language: null, updated_at: "2026-10-07T12:00:00Z" }];

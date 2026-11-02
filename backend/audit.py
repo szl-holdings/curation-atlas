@@ -315,8 +315,10 @@ async def audit_one(reader: GitHubReader, repository: dict[str, Any], org: str,
         tree = await reader.get(f"/repos/{full_name}/git/trees/{tree_sha}", {"recursive": 1})
         if tree.get("sha") != tree_sha or not isinstance(tree.get("tree"), list):
             raise AuditError("GitHub tree did not match the captured branch tree SHA.")
+        if type(tree.get("truncated")) is not bool:
+            raise AuditError("GitHub tree lacked an explicit coverage state.")
         entries = tree["tree"]
-        complete = not bool(tree.get("truncated"))
+        complete = not tree["truncated"]
         community = await reader.maybe(f"/repos/{full_name}/community/profile")
         rules = await reader.maybe(
             f"/repos/{full_name}/rules/branches/{branch_name}", {"per_page": 100}
