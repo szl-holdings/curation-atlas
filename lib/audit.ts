@@ -835,6 +835,10 @@ export async function scanOrganization(
       );
       const headSha = branch.commit.sha;
       const treeSha = branch.commit.commit.tree.sha;
+      if (typeof headSha !== "string" || !/^[0-9a-f]{40}$/i.test(headSha) ||
+          typeof treeSha !== "string" || !/^[0-9a-f]{40}$/i.test(treeSha)) {
+        throw new GitHubAuditError("GitHub branch lacked an exact commit and tree SHA.");
+      }
       const [treeResult, communityResult, rulesResult] = await Promise.all([
         githubFetch<{ sha: string; truncated: boolean; tree: TreeEntry[] }>(
           `https://api.github.com/repos/${repository.full_name}/git/trees/${treeSha}?recursive=1`,
@@ -850,6 +854,10 @@ export async function scanOrganization(
         ),
       ]);
 
+      if (treeResult.sha !== treeSha || !Array.isArray(treeResult.tree) ||
+          typeof treeResult.truncated !== "boolean") {
+        throw new GitHubAuditError("GitHub tree lacked the captured identity or explicit coverage.");
+      }
       const treeComplete = !treeResult.truncated;
       const preliminary = resolvePolicies(treeResult.tree, treeComplete, null, false, `${orgData.login}/.github`);
       const agentSignals: AgentSignal[] = [];
