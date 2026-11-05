@@ -5,6 +5,7 @@ colorFrom: indigo
 colorTo: blue
 sdk: docker
 app_port: 7860
+license: apache-2.0
 ---
 
 # Curation Atlas API
@@ -13,10 +14,17 @@ Read-only, public-GitHub audit service for the fixed `szl-holdings` organization
 It does not apply policy, certify a repository, or attest a GitHub or HF deployment.
 The response is an observation made over a non-atomic scan window.
 
+* `GET /`: headless service index. It names the two routes below and repeats
+  the declared source-binding fields. `upstreamReadiness` is `UNKNOWN`. The
+  body is not a product page, an audit result, or a release attestation.
 * `GET /healthz`: process liveness and declared source revision. Liveness is not
   upstream readiness or source attestation.
 * `GET /v1/orgs/szl-holdings/audit?sample_size=4`: bounded public inventory and
   deep sample, using the front end's `AuditResult` schema version 1.
+
+Canonical source for this API is the `backend/` tree of
+<https://github.com/szl-holdings/curation-atlas>. This card does not record
+which revision a Space is running. The repository license is Apache-2.0.
 
 Accepted sample sizes are 4, 6, and 8. Other organizations are not supported.
 One uncached scan may run at a time; successful results are cached for ten minutes

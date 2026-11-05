@@ -188,6 +188,76 @@ class TransportTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json()["upstreamReadiness"], "UNKNOWN")
 
+    def test_root_is_headless_index_not_audit_or_readiness(self):
+        with patch("app.scan_organization", side_effect=AssertionError("root must not scan")):
+            with patch.dict("os.environ", {"ATLAS_SOURCE_REVISION": ""}, clear=False):
+                with TestClient(app) as client:
+                    response = client.get("/")
+                    self.assertEqual(response.status_code, 200)
+                    self.assertTrue(response.headers["content-type"].startswith("application/json"))
+                    self.assertEqual(response.headers["cache-control"], "no-store")
+                    self.assertEqual(response.headers["x-content-type-options"], "nosniff")
+                    body = response.json()
+                    self.assertEqual(body, {
+                        "service": "curation-atlas-api",
+                        "schemaVersion": 1,
+                        "role": "HEADLESS_API",
+                        "description": (
+                            "Bounded public GitHub observations; not a policy effector "
+                            "or release attestation."
+                        ),
+                        "sourceRevision": None,
+                        "sourceBinding": "UNKNOWN",
+                        "upstreamReadiness": "UNKNOWN",
+                        "entrypoints": [
+                            {
+                                "method": "GET",
+                                "path": "/healthz",
+                                "purpose": (
+                                    "process liveness and declared source revision; "
+                                    "not upstream readiness or release attestation"
+                                ),
+                            },
+                            {
+                                "method": "GET",
+                                "path": "/v1/orgs/szl-holdings/audit",
+                                "query": {"sample_size": [4, 6, 8]},
+                                "purpose": "bounded public audit observation",
+                            },
+                        ],
+                    })
+                    self.assertNotIn("status", body)
+                    self.assertNotIn("mode", body)
+                    self.assertNotIn("publicOnly", body)
+                    self.assertNotIn("evidence", body)
+                    paths = client.get("/openapi.json").json()["paths"]
+                    self.assertIn("/", paths)
+                    self.assertIn("/healthz", paths)
+                    self.assertIn("/v1/orgs/{org}/audit", paths)
+                    missing = client.get("/not-an-entrypoint")
+                    self.assertEqual(missing.status_code, 404)
+                    self.assertEqual(missing.json(), {"detail": "Not Found"})
+
+            declared = "a" * 40
+            with patch.dict("os.environ", {"ATLAS_SOURCE_REVISION": declared}, clear=False):
+                with TestClient(app) as client:
+                    root = client.get("/").json()
+                    health = client.get("/healthz").json()
+                    self.assertEqual(root["sourceRevision"], declared)
+                    self.assertEqual(root["sourceBinding"], "DECLARED")
+                    self.assertEqual(root["upstreamReadiness"], "UNKNOWN")
+                    self.assertEqual(health["sourceRevision"], declared)
+                    self.assertEqual(health["sourceBinding"], "DECLARED")
+                    self.assertEqual(health["upstreamReadiness"], "UNKNOWN")
+                    self.assertEqual(health["status"], "PROCESS_ALIVE")
+                    self.assertEqual(health["evidence"], "MEASURED")
+
+            with patch.dict("os.environ", {"ATLAS_SOURCE_REVISION": "g" * 40}, clear=False):
+                with TestClient(app) as client:
+                    root = client.get("/").json()
+                    self.assertIsNone(root["sourceRevision"])
+                    self.assertEqual(root["sourceBinding"], "UNKNOWN")
+
     def test_rejects_other_org_and_invalid_sample_before_upstream(self):
         with TestClient(app) as client:
             self.assertEqual(client.get("/v1/orgs/other/audit").status_code, 404)

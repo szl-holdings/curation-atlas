@@ -27,7 +27,8 @@ route, and proof route are separate states that each require their own readback.
   `szl-holdings` uses the Python service. If that request fails, the UI retains
   the preceding evidence; it does not silently relabel a fallback scan.
 - `backend/audit.py` is a read-only, public-repository collector. `backend/app.py`
-  serves `GET /healthz` and `GET /v1/orgs/szl-holdings/audit?sample_size=4`.
+  serves `GET /` (headless service index; not a product page or readiness
+  attestation), `GET /healthz`, and `GET /v1/orgs/szl-holdings/audit?sample_size=4`.
   Sample sizes are limited to 4, 6, or 8. Successful observations are cached
   for ten minutes with their original `observedAt`; 429 and 503 are failures,
   not audit results. See [backend/README.md](backend/README.md) for the API

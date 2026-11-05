@@ -57,5 +57,27 @@ jobs:
       - name: Build Space container
         working-directory: backend
         run: docker build --pull=false -t curation-atlas-ci .
-      - name: Verify container imports API
-        run: docker run --rm curation-atlas-ci python -c "import app; assert app.app.title == 'Curation Atlas API'"
+      - name: Verify container serves the headless root contract
+        run: |
+          docker run --rm curation-atlas-ci python -c '
+          from fastapi.testclient import TestClient
+          import app
+          assert app.app.title == "Curation Atlas API"
+          with TestClient(app.app) as client:
+              root = client.get("/")
+              assert root.status_code == 200, root.text
+              body = root.json()
+              assert body["role"] == "HEADLESS_API"
+              assert body["upstreamReadiness"] == "UNKNOWN"
+              assert body["sourceRevision"] is None
+              assert body["sourceBinding"] == "UNKNOWN"
+              assert {item["path"] for item in body["entrypoints"]} == {
+                  "/healthz", "/v1/orgs/szl-holdings/audit"
+              }
+              assert "mode" not in body and "publicOnly" not in body
+              health = client.get("/healthz")
+              assert health.status_code == 200
+              assert health.json()["status"] == "PROCESS_ALIVE"
+              assert health.json()["upstreamReadiness"] == "UNKNOWN"
+              assert client.get("/not-an-entrypoint").status_code == 404
+          '
