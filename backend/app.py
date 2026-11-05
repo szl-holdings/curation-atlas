@@ -53,10 +53,14 @@ async def lifespan(application: FastAPI):
         yield
 
 
+API_DESCRIPTION = (
+    "Bounded public GitHub observations; not a policy effector or release attestation."
+)
+
 app = FastAPI(
     title="Curation Atlas API",
     version="1.0.0",
-    description="Bounded public GitHub observations; not a policy effector or release attestation.",
+    description=API_DESCRIPTION,
     lifespan=lifespan,
 )
 ALLOWED_ORIGINS = allowed_origins()
@@ -69,17 +73,55 @@ app.add_middleware(
 )
 
 
+def source_binding() -> dict[str, Any]:
+    revision = declared_revision()
+    return {
+        "sourceRevision": revision,
+        "sourceBinding": "DECLARED" if revision else "UNKNOWN",
+        "upstreamReadiness": "UNKNOWN",
+    }
+
+
+@app.get("/")
+async def service_index() -> JSONResponse:
+    """Headless entry. Names the documented API; it does not attest readiness."""
+    payload = {
+        "service": "curation-atlas-api",
+        "schemaVersion": 1,
+        "role": "HEADLESS_API",
+        "description": API_DESCRIPTION,
+        **source_binding(),
+        "entrypoints": [
+            {
+                "method": "GET",
+                "path": "/healthz",
+                "purpose": (
+                    "process liveness and declared source revision; "
+                    "not upstream readiness or release attestation"
+                ),
+            },
+            {
+                "method": "GET",
+                "path": "/v1/orgs/szl-holdings/audit",
+                "query": {"sample_size": [4, 6, 8]},
+                "purpose": "bounded public audit observation",
+            },
+        ],
+    }
+    return JSONResponse(
+        content=payload,
+        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+    )
+
+
 @app.get("/healthz")
 async def healthz() -> dict[str, Any]:
-    revision = declared_revision()
     return {
         "status": "PROCESS_ALIVE",
         "evidence": "MEASURED",
         "service": "curation-atlas-api",
         "schemaVersion": 1,
-        "sourceRevision": revision,
-        "sourceBinding": "DECLARED" if revision else "UNKNOWN",
-        "upstreamReadiness": "UNKNOWN",
+        **source_binding(),
     }
 
 
