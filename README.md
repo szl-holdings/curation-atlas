@@ -1,3 +1,11 @@
+---
+license: Apache-2.0
+title: Curation Atlas
+emoji: 🗺️
+colorFrom: blue
+colorTo: indigo
+---
+
 # Curation Atlas
 
 Curation Atlas is a public-source curation audit for the `szl-holdings` GitHub
