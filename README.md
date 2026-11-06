@@ -104,3 +104,7 @@ Space or Site is running.
 
 Until each step has an independent readback, its release state remains
 `UNKNOWN` or `UNAVAILABLE`; this README is not a publication claim.
+
+## Relation to the estate
+
+Part of the [SZL Holdings](https://github.com/szl-holdings) GitHub estate; models, datasets and Spaces are published under the [SZLHOLDINGS](https://huggingface.co/SZLHOLDINGS) Hugging Face org.
