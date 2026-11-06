@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it using the metadata from this file.
+type: software
+title: szl-holdings/curation-atlas — Public-source, evidence-bounded GitHub curation audit and research
+  dashboard
+version: 0.1.0
+date-released: '2026-11-05'
+license: Apache-2.0
+url: https://huggingface.co/spaces/SZLHOLDINGS/curation-atlas
+repository-code: https://github.com/szl-holdings/curation-atlas
+authors:
+- family-names: Lutar
+  given-names: Stephen P.
+  name-suffix: Jr.
+  orcid: https://orcid.org/0009-0001-0110-4173
+  affiliation: SZL Holdings
+keywords:
+- szl-holdings
+- typescript
+- dashboard
+- github-audit
+- evidence
+- research
