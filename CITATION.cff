@@ -4,7 +4,6 @@ type: software
 title: szl-holdings/curation-atlas — Public-source, evidence-bounded GitHub curation audit and research
   dashboard
 version: 0.1.0
-date-released: '2026-11-05'
 license: Apache-2.0
 url: https://huggingface.co/spaces/SZLHOLDINGS/curation-atlas
 repository-code: https://github.com/szl-holdings/curation-atlas

@@ -49,6 +49,7 @@ The frontend requires Node.js 22.13 or newer. From this directory:
 
 ```text
 npm ci
+npm run lint
 npm test
 npx tsc --noEmit
 npm run build
@@ -77,15 +78,17 @@ HTTPS. `ATLAS_SOURCE_REVISION` may be set to a full source SHA only after the
 publisher binds the deployed bytes to that revision. `/healthz` reports process
 liveness, not upstream readiness or release attestation.
 
-The CI workflow repeats the locked npm install, frontend tests/typecheck/build,
-and hash-locked Python closure install/unit tests. CI success does not prove a
-Space or Site is running.
+The CI workflow repeats the locked npm install, frontend lint/tests/typecheck/build,
+and hash-locked Python closure install/unit tests, then builds the API container
+and checks its headless root and health contract inside it. CI success does not
+prove a Space or Site is running.
 
 ## Governed release chain
 
-1. Create the dedicated `szl-holdings/curation-atlas` GitHub repository, push a
-   reviewed exact source head, and read back its branch rules, checks, and
-   resulting merge SHA. Do not bypass a required protected-merge path.
+1. Land a reviewed exact source head in this repository
+   (`szl-holdings/curation-atlas`) through its pull-request path, and read back
+   its branch rules, checks, and resulting merge SHA. Do not bypass a required
+   protected-merge path.
 2. Publish the API to a separate `SZLHOLDINGS/curation-atlas` Docker Space from
    that source. Keep the Space on CPU Basic unless a separately authorized
    upgrade is needed; set an exact Site origin in `ATLAS_ALLOWED_ORIGINS` and
@@ -108,3 +111,9 @@ Until each step has an independent readback, its release state remains
 ## Relation to the estate
 
 Part of the [SZL Holdings](https://github.com/szl-holdings) GitHub estate; models, datasets and Spaces are published under the [SZLHOLDINGS](https://huggingface.co/SZLHOLDINGS) Hugging Face org.
+
+The API's Docker Space is
+[`SZLHOLDINGS/curation-atlas`](https://huggingface.co/spaces/SZLHOLDINGS/curation-atlas),
+built from `backend/`. Read the source revision it runs from the Space's own
+card and commit history; it can lag this repository's head, and a running Space
+is not evidence that it serves this source.
