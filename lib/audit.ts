@@ -598,7 +598,7 @@ async function githubMaybe<T>(url: string, onRate: (rate: RateState) => void): P
   }
 }
 
-function resolvePolicies(
+export function resolvePolicies(
   entries: TreeEntry[],
   treeComplete: boolean,
   defaultEntries: TreeEntry[] | null,
