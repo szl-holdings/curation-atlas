@@ -1,0 +1,42 @@
+name: Parity
+
+# TS/Python parity for lib/audit.ts and backend/audit.py. Not a required check: known divergences
+# are recorded as expected failures tied to open decisions P15-D1..P15-D8 (backend/tests/test_parity.py).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    name: TS/Python parity (non-required)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.16.0
+      - name: Committed vectors match lib/audit.ts
+        run: node --experimental-strip-types tests/parity/generate.mts --check
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.lock
+      - name: Install hash-locked Python closure
+        working-directory: backend
+        run: python -m pip install --disable-pip-version-check --require-hashes -r requirements.lock
+      - name: Python matches the vectors (or a registered decision)
+        working-directory: backend
+        run: python -m unittest discover -s tests -p test_parity.py -v
