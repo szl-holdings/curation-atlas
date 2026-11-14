@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 import httpx
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from audit import AuditError, GitHubReader, ORG, scan_organization
 
@@ -82,8 +82,57 @@ def source_binding() -> dict[str, Any]:
     }
 
 
+def _browser_front_page(payload: dict[str, Any]) -> str:
+    """Responsive, honest landing page mirroring the headless JSON payload."""
+    entrypoints = "".join(
+        "<li><code>GET " + str(e["path"]) + "</code> &mdash; " + str(e["purpose"]) + "</li>"
+        for e in payload["entrypoints"]
+    )
+    revision = str(payload.get("sourceRevision") or "UNKNOWN")
+    return """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curation Atlas</title>
+<style>
+:root{--bg:#0b0e14;--panel:#121722;--ink:#e8ecf4;--dim:#9aa7bd;--line:#232c3d;--accent:#5eead4}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.6}
+.wrap{max-width:860px;margin:0 auto;padding:28px 20px 48px}
+h1{font-size:clamp(1.5rem,5vw,2.2rem);margin:.3em 0}
+p,li{color:var(--dim)}
+a{color:var(--accent)}
+code{background:#0e1420;border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:18px}
+.badge{display:inline-block;padding:7px 12px;border:1px solid var(--line);border-radius:999px;margin:4px 6px 12px 0;text-decoration:none;color:var(--ink);background:#0e1420}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Curation Atlas</h1>
+<p>__DESC__</p>
+<div>
+<a class="badge" href="/healthz">status: /healthz</a>
+<a class="badge" href="https://huggingface.co/SZLHOLDINGS">Hugging Face org</a>
+<a class="badge" href="https://github.com/szl-holdings/curation-atlas">source repository</a>
+</div>
+<div class="card"><strong>Headless API</strong><p>Role: __ROLE__. Source revision: __REV__ (DECLARED binding; upstream readiness UNKNOWN).</p><ul>__ENTRYPOINTS__</ul></div>
+<div class="card"><strong>Receipts layer</strong><p>Every claim on this estate binds to a signed receipt. No receipt, no claim. Fail-closed: unmeasured things say NOT MEASURED.</p></div>
+<footer style="margin-top:30px;color:var(--dim);font-size:.85rem">Browsers get this page; API clients (Accept: application/json) get the unchanged headless payload.</footer>
+</div>
+</body>
+</html>"""         .replace("__DESC__", str(payload["description"]))         .replace("__ROLE__", str(payload["role"]))         .replace("__REV__", revision)         .replace("__ENTRYPOINTS__", entrypoints)
+
+
 @app.get("/")
-async def service_index() -> JSONResponse:
+async def service_index(request: Request):
+    """Headless entry for API clients; a responsive page for browsers.
+
+    Content negotiation on the Accept header: browsers send text/html and
+    get an honest landing page; everything else gets the unchanged JSON
+    headless payload. This does not attest readiness either way.
+    """
     """Headless entry. Names the documented API; it does not attest readiness."""
     payload = {
         "service": "curation-atlas-api",
@@ -108,6 +157,11 @@ async def service_index() -> JSONResponse:
             },
         ],
     }
+    if "text/html" in request.headers.get("accept", ""):
+        return HTMLResponse(
+            content=_browser_front_page(payload),
+            headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+        )
     return JSONResponse(
         content=payload,
         headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
