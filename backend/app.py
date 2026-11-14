@@ -126,7 +126,7 @@ code{background:#0e1420;border:1px solid var(--line);border-radius:6px;padding:2
 
 
 @app.get("/")
-async def service_index(request: Request) -> JSONResponse | HTMLResponse:
+async def service_index(request: Request):
     """Headless entry for API clients; a responsive page for browsers.
 
     Content negotiation on the Accept header: browsers send text/html and
