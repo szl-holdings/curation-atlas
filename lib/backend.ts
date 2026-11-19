@@ -50,6 +50,7 @@ export function parseBackendAudit(value: unknown, requestedSample: number): Audi
       typeof value.observedAt !== "string" || !Number.isFinite(Date.parse(value.observedAt))) {
     throw new BackendAuditError("The Python API did not return a compatible public AuditResult v1.");
   }
+  const repoNames = new Set<string>();
   for (const repo of value.repositories) {
     if (!record(repo) || typeof repo.fullName !== "string" ||
         !repo.fullName.toLowerCase().startsWith("szl-holdings/") ||
@@ -60,6 +61,9 @@ export function parseBackendAudit(value: unknown, requestedSample: number): Audi
         (repo.treeComplete === true && (!repo.headSha || !repo.treeSha))) {
       throw new BackendAuditError("The Python API returned an incomplete repository source binding.");
     }
+    const identity = repo.fullName.toLowerCase();
+    if (repoNames.has(identity)) throw new BackendAuditError("The Python API repeated a repository identity.");
+    repoNames.add(identity);
     const canonical = new Map(POLICY_DEFINITIONS.map((definition) => [definition.key, definition]));
     const seen = new Set<string>();
     for (const policy of repo.policies) {

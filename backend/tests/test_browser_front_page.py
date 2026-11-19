@@ -33,3 +33,33 @@ def test_default_request_keeps_headless_contract():
     client = TestClient(app)
     response = client.get("/")
     assert response.headers["content-type"].startswith("application/json")
+
+
+def _html_and_json():
+    client = TestClient(app)
+    html = client.get("/", headers={"Accept": BROWSER_ACCEPT}).text
+    body = client.get("/", headers={"Accept": "application/json"}).json()
+    return html, body
+
+
+def test_html_binding_matches_json_when_revision_unset(monkeypatch):
+    monkeypatch.delenv("ATLAS_SOURCE_REVISION", raising=False)
+    html, body = _html_and_json()
+    assert body["sourceBinding"] == "UNKNOWN"
+    assert "UNKNOWN binding" in html
+    assert "DECLARED binding" not in html
+
+
+def test_html_binding_declared_when_revision_set(monkeypatch):
+    revision = "abc123" + "0" * 34
+    monkeypatch.setenv("ATLAS_SOURCE_REVISION", revision)
+    html, body = _html_and_json()
+    assert body["sourceBinding"] == "DECLARED"
+    assert "DECLARED binding" in html
+    assert revision in html
+
+
+def test_html_never_claims_signed_receipt():
+    html, _ = _html_and_json()
+    assert "signed receipt" not in html.lower()
+    assert "UNSIGNED" in html

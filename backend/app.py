@@ -89,6 +89,8 @@ def _browser_front_page(payload: dict[str, Any]) -> str:
         for e in payload["entrypoints"]
     )
     revision = str(payload.get("sourceRevision") or "UNKNOWN")
+    binding = str(payload.get("sourceBinding") or "UNKNOWN")
+    readiness = str(payload.get("upstreamReadiness") or "UNKNOWN")
     return """<!doctype html>
 <html lang="en">
 <head>
@@ -117,12 +119,12 @@ code{background:#0e1420;border:1px solid var(--line);border-radius:6px;padding:2
 <a class="badge" href="https://huggingface.co/SZLHOLDINGS">Hugging Face org</a>
 <a class="badge" href="https://github.com/szl-holdings/curation-atlas">source repository</a>
 </div>
-<div class="card"><strong>Headless API</strong><p>Role: __ROLE__. Source revision: __REV__ (DECLARED binding; upstream readiness UNKNOWN).</p><ul>__ENTRYPOINTS__</ul></div>
-<div class="card"><strong>Receipts layer</strong><p>Every claim on this estate binds to a signed receipt. No receipt, no claim. Fail-closed: unmeasured things say NOT MEASURED.</p></div>
+<div class="card"><strong>Headless API</strong><p>Role: __ROLE__. Source revision: __REV__ (__BINDING__ binding; upstream readiness __READY__).</p><ul>__ENTRYPOINTS__</ul></div>
+<div class="card"><strong>Receipts layer</strong><p>Exported receipts are self-asserted SHA-256 digests (UNSIGNED): anyone can make one that verifies, and they do not establish author or GitHub origin. Fail-closed: unmeasured things say NOT MEASURED.</p></div>
 <footer style="margin-top:30px;color:var(--dim);font-size:.85rem">Browsers get this page; API clients (Accept: application/json) get the unchanged headless payload.</footer>
 </div>
 </body>
-</html>"""         .replace("__DESC__", str(payload["description"]))         .replace("__ROLE__", str(payload["role"]))         .replace("__REV__", revision)         .replace("__ENTRYPOINTS__", entrypoints)
+</html>"""         .replace("__DESC__", str(payload["description"]))         .replace("__ROLE__", str(payload["role"]))         .replace("__REV__", revision)         .replace("__BINDING__", binding)         .replace("__READY__", readiness)         .replace("__ENTRYPOINTS__", entrypoints)
 
 
 @app.get("/")

@@ -68,6 +68,19 @@ test("duplicate or altered policy definitions cannot masquerade as a complete au
   assert.throws(() => parseBackendAudit(altered, 4), BackendAuditError);
 });
 
+test("a repeated repository identity cannot pass as a complete audit", () => {
+  const repeated = fixture();
+  for (let i = 1; i < 4; i++) repeated.repositories[i] = repeated.repositories[0];
+  assert.throws(() => parseBackendAudit(repeated, 4), BackendAuditError);
+  const caseVariant = fixture();
+  caseVariant.repositories[1].fullName = "SZL-Holdings/A";
+  assert.throws(() => parseBackendAudit(caseVariant, 4), BackendAuditError);
+  const blocked = fixture();
+  blocked.mode = "BLOCKED";
+  blocked.repositories[1] = blocked.repositories[0];
+  assert.throws(() => parseBackendAudit(blocked, 4), BackendAuditError);
+});
+
 test("partial inherited-policy evidence remains displayable as BLOCKED", () => {
   const partial = fixture();
   partial.mode = "BLOCKED";
