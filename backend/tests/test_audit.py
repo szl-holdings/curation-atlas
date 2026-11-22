@@ -23,7 +23,7 @@ def repo_payload(name: str) -> dict:
         "name": name, "full_name": f"{ORG}/{name}",
         "description": None, "default_branch": "main", "archived": False,
         "disabled": False, "fork": False, "private": False,
-        "language": "Python", "updated_at": "2026-10-17T00:00:00Z",
+        "visibility": "public", "language": "Python", "updated_at": "2026-10-17T00:00:00Z",
     }
 
 
@@ -135,7 +135,13 @@ class AuditContractTests(unittest.IsolatedAsyncioTestCase):
         rows = [repo_payload(name) for name in REPOS]
         missing_private = repo_payload("missing-private")
         del missing_private["private"]
+        missing_visibility = repo_payload("missing-visibility")
+        del missing_visibility["visibility"]
         rows.extend([
+            missing_visibility,
+            {**repo_payload("null-visibility"), "visibility": None},
+            {**repo_payload("boolean-visibility"), "visibility": False},
+            {**repo_payload("string-visibility"), "visibility": "PUBLIC"},
             {**repo_payload("null-private"), "private": None},
             missing_private,
             {**repo_payload("string-private"), "private": "false"},
