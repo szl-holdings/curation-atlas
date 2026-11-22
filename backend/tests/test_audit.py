@@ -129,6 +129,41 @@ class RateHeaderTests(unittest.IsolatedAsyncioTestCase):
 
 
 class AuditContractTests(unittest.IsolatedAsyncioTestCase):
+    async def test_public_inventory_rejects_unknown_and_internal_visibility(self):
+        """A public-only scan must not infer public status from absent/malformed flags."""
+        original = github_handler()
+        rows = [repo_payload(name) for name in REPOS]
+        missing_private = repo_payload("missing-private")
+        del missing_private["private"]
+        rows.extend([
+            {**repo_payload("null-private"), "private": None},
+            missing_private,
+            {**repo_payload("string-private"), "private": "false"},
+            {**repo_payload("explicit-private"), "private": True},
+            {**repo_payload("internal-repo"), "visibility": "internal"},
+            {**repo_payload("confirmed-public"), "visibility": "public"},
+        ])
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path == f"/orgs/{ORG}/repos":
+                return httpx.Response(200, json=rows, headers={
+                    "x-ratelimit-limit": "5000",
+                    "x-ratelimit-remaining": "4900",
+                    "x-ratelimit-reset": "1792289000",
+                })
+            return original(request)
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await scan_organization(GitHubReader(client), 4)
+
+        public_names = {entry["fullName"] for entry in result["publicInventory"]}
+        self.assertEqual(public_names, {
+            *(f"{ORG}/{name}" for name in REPOS),
+            f"{ORG}/confirmed-public",
+        })
+        self.assertEqual(result["inventory"]["publicRepos"], 5)
+        self.assertEqual(result["mode"], "MEASURED")
+
     async def test_complete_public_scan_matches_frontend_shape(self):
         result = await run_scan()
         self.assertEqual(result["schemaVersion"], 1)
