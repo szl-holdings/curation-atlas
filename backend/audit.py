@@ -418,7 +418,7 @@ async def scan_organization(reader: GitHubReader, sample_size: int) -> dict[str,
             # carries an explicit public-visibility witness. Unknown/malformed
             # flags and internal rows must not enter publicOnly observations.
             if (not isinstance(item, dict) or item.get("private") is not False
-                    or item.get("visibility") != "public"):
+                    or item.get("visibility", "public") != "public"):
                 continue
             full_name = item.get("full_name", "")
             if not isinstance(full_name, str) or not full_name.lower().startswith(f"{ORG}/"):
