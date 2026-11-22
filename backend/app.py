@@ -181,6 +181,30 @@ async def healthz() -> dict[str, Any]:
     }
 
 
+@app.get("/readyz", include_in_schema=False)
+async def readyz() -> JSONResponse:
+    """Operational probe for a recent *sampled* audit, never release admission."""
+    now = time.monotonic()
+    measured = any(
+        0 <= now - observed < CACHE_SECONDS
+        and result.get("mode") == "MEASURED"
+        for observed, result, _etag in _cache.values()
+    )
+    binding = source_binding()
+    ready = measured and binding["sourceBinding"] == "DECLARED"
+    return JSONResponse(
+        status_code=200 if ready else 503,
+        content={
+            "ready": ready,
+            "scope": "SAMPLED_PUBLIC_REPOSITORIES_ONLY",
+            "sampleReadiness": "MEASURED" if measured else "UNKNOWN",
+            **binding,
+            "releaseReadiness": "NOT_ATTESTED",
+        },
+        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+    )
+
+
 def audit_response(result: dict[str, Any], etag: str, cached: bool) -> JSONResponse:
     headers = {
         "Cache-Control": "public, max-age=60",

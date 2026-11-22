@@ -14,11 +14,21 @@ Read-only, public-GitHub audit service for the fixed `szl-holdings` organization
 It does not apply policy, certify a repository, or attest a GitHub or HF deployment.
 The response is an observation made over a non-atomic scan window.
 
-* `GET /`: headless service index. It names the two routes below and repeats
+* `GET /`: headless service index. It names the two public API routes below
+  (not the separate operator-only `/readyz` probe) and repeats
   the declared source-binding fields. `upstreamReadiness` is `UNKNOWN`. The
   body is not a product page, an audit result, or a release attestation.
 * `GET /healthz`: process liveness and declared source revision. Liveness is not
   upstream readiness or source attestation.
+* `GET /readyz`: operational **sample-only** readiness check, with no upstream
+  fetch on the probe. It returns HTTP 503 until `ATLAS_SOURCE_REVISION` is a
+  declared 40-hex commit and a completed `mode=MEASURED` public sample is
+  cached less than ten minutes old (no future timestamps). HTTP 200 then
+  means only that bounded sampled API operation recently succeeded.
+  `releaseReadiness=NOT_ATTESTED` and `upstreamReadiness=UNKNOWN` are
+  unchanged; a configured revision is a declaration, not deployment proof.
+  This operator probe is not a product API entrypoint or an org-wide audit.
+  All responses are `no-store`; no model, credential, or provider action.
 * `GET /v1/orgs/szl-holdings/audit?sample_size=4`: bounded public inventory and
   deep sample, using the front end's `AuditResult` schema version 1.
 
