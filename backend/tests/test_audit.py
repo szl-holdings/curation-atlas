@@ -333,3 +333,39 @@ class TransportTests(unittest.TestCase):
                 client.get(f"/v1/orgs/{ORG}/audit", headers={"Origin": "null"}).status_code,
                 403,
             )
+
+
+class StrictGithubJsonTests(unittest.IsolatedAsyncioTestCase):
+    async def test_rejects_ambiguous_github_json(self):
+        malformed = (
+            '{"sha":"one","sha":"two"}',
+            '{"metadata":{"sha":"one","sha":"two"}}',
+            '{"value":NaN}',
+            '{"value":Infinity}',
+            '{"value":-Infinity}',
+            '{"value":1e999}',
+        )
+        for raw in malformed:
+            with self.subTest(raw=raw):
+                transport = httpx.MockTransport(
+                    lambda request: httpx.Response(
+                        200, content=raw.encode("utf-8"),
+                        headers={"content-type": "application/json"}
+                    )
+                )
+                async with httpx.AsyncClient(transport=transport) as client:
+                    with self.assertRaises(AuditError) as caught:
+                        await GitHubReader(client).get("/orgs/szl-holdings")
+                self.assertEqual(caught.exception.status, 503)
+                self.assertIn("invalid JSON source response", str(caught.exception))
+
+    async def test_allows_valid_nested_github_json(self):
+        transport = httpx.MockTransport(
+            lambda request: httpx.Response(
+                200, content=b'{"sha":"abc","nested":{"coverage":0.25,"keys":[1,true,null]}}',
+                headers={"content-type": "application/json"}
+            )
+        )
+        async with httpx.AsyncClient(transport=transport) as client:
+            result = await GitHubReader(client).get("/orgs/szl-holdings")
+        self.assertEqual(result["nested"], {"coverage": 0.25, "keys": [1, True, None]})
