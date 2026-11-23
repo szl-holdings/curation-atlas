@@ -6,6 +6,7 @@ provider writes. Its JSON shape mirrors the frontend AuditResult v1 contract.
 
 from __future__ import annotations
 
+import json
 import math
 import re
 from datetime import datetime, timezone
@@ -59,6 +60,26 @@ class AuditError(Exception):
         super().__init__(message)
         self.status = status
         self.retry_after = retry_after
+
+
+def _unique_json_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON object name")
+        result[key] = value
+    return result
+
+
+def _reject_json_constant(token: str) -> None:
+    raise ValueError("nonstandard JSON numeric constant")
+
+
+def _finite_json_float(token: str) -> float:
+    value = float(token)
+    if not math.isfinite(value):
+        raise ValueError("JSON numeric overflow")
+    return value
 
 
 class GitHubReader:
@@ -125,8 +146,13 @@ class GitHubReader:
                 raise AuditError("GitHub rejected this source request.", 422)
             raise AuditError(f"GitHub source request returned HTTP {response.status_code}.")
         try:
-            return response.json()
-        except ValueError as exc:
+            return json.loads(
+                response.content,
+                object_pairs_hook=_unique_json_pairs,
+                parse_constant=_reject_json_constant,
+                parse_float=_finite_json_float,
+            )
+        except (ValueError, RecursionError) as exc:
             raise AuditError("GitHub returned an invalid JSON source response.") from exc
 
     async def maybe(self, path: str, params: dict[str, Any] | None = None) -> Any | None:
