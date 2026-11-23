@@ -13,7 +13,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 import httpx
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
@@ -171,7 +171,10 @@ async def service_index(request: Request):
 
 
 @app.get("/healthz")
-async def healthz() -> dict[str, Any]:
+async def healthz(response: Response) -> dict[str, Any]:
+    """Fresh process/source declaration; never reusable as cached readiness."""
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return {
         "status": "PROCESS_ALIVE",
         "evidence": "MEASURED",
