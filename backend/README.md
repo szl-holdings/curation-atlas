@@ -18,8 +18,9 @@ The response is an observation made over a non-atomic scan window.
   (not the separate operator-only `/readyz` probe) and repeats
   the declared source-binding fields. `upstreamReadiness` is `UNKNOWN`. The
   body is not a product page, an audit result, or a release attestation.
-* `GET /healthz`: process liveness and declared source revision. Liveness is not
-  upstream readiness or source attestation.
+* `GET /healthz`: process liveness and declared source revision, with explicit
+  `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`. Liveness is
+  not upstream readiness, source attestation, or a signed release receipt.
 * `GET /readyz`: operational **sample-only** readiness check, with no upstream
   fetch on the probe. It returns HTTP 503 until `ATLAS_SOURCE_REVISION` is a
   declared 40-hex commit and a completed `mode=MEASURED` public sample is
